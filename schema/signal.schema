@@ -1,0 +1,64 @@
+;; signal-orchestrator-judge — typed orchestrator judge contract sketch.
+;;
+;; Rust source owns this vertical slice directly; this concept schema names the
+;; typed request/reply spine and payload records for generator alignment. Topic
+;; and agent vocabulary is imported from signal-orchestrate; the message type is
+;; imported from signal-orchestrator-message.
+[
+  AssignTopic
+  TriageMessage
+]
+[
+  TopicAssigned
+  MessageTriaged
+  RequestRejected
+]
+{
+  AssignTopic TopicAssignmentPacket
+  TriageMessage TriagePacket
+  TopicAssigned TopicAssignmentResponse
+  MessageTriaged TriageResponse
+  RequestRejected OrchestratorJudgeRequestRejection
+
+  TopicAssignmentPacket { JudgmentScope MissionDescription ExistingTopics }
+  ExistingTopics (Vector OrchestratorTopic)
+  TopicAssignmentResponse { TopicAssignmentVerdict JudgeDiagnostic }
+  TopicAssignmentVerdict [(Assign TopicAssignment) (Reject TopicAssignmentRejectionReason)]
+  TopicAssignment { ReuseTopics CreateTopics }
+  ReuseTopics (Vector OrchestratorTopicPath)
+  CreateTopics (Vector NewTopic)
+  NewTopic { parent.(Optional OrchestratorTopicPath) TopicName }
+  TopicAssignmentRejectionReason [MissionTooVague MissionEmpty]
+
+  TriagePacket { JudgmentScope OrchestratorMessage Sender TopicDirectory AgentDirectory }
+  Sender OrchestratorAgentIdentifier
+  TopicDirectory (Vector OrchestratorTopic)
+  AgentDirectory (Vector OrchestratorAgentSummary)
+  TriageResponse { TriageVerdict JudgeDiagnostic }
+  TriageVerdict [(Route TriageRouting) (Escalate EscalationNote) (Reject TriageRejectionReason)]
+  TriageRouting { Recipients retyped_kind.(Optional OrchestratorMessageKind) rewritten_message.(Optional OrchestratorMessage) }
+  Recipients (Vector OrchestratorAgentIdentifier)
+  EscalationNote { EscalationReason EscalationDetail }
+  EscalationReason String
+  EscalationDetail String
+  TriageRejectionReason [NoEligibleRecipient SenderNotRegistered MalformedPayload]
+
+  JudgmentScope [Public Private]
+  Private { PrivateDiagnosticPolicy }
+  PrivateDiagnosticPolicy [HashesAndRedaction]
+  JudgeDiagnostic { RedactedText ContentHashes }
+  ContentHashes (Vector ContentHash)
+  ContentHash String
+  RedactedText String
+  OrchestratorJudgeRequestRejection { OrchestratorJudgeRequestRejectionReason JudgeDiagnostic }
+  OrchestratorJudgeRequestRejectionReason [InvalidRequest ConfigurationUnavailable ProviderUnavailable ProviderRejected ResponseFormatFailure]
+
+  MissionDescription signal-orchestrate.MissionDescription
+  OrchestratorTopic signal-orchestrate.OrchestratorTopic
+  OrchestratorTopicPath signal-orchestrate.OrchestratorTopicPath
+  TopicName signal-orchestrate.TopicName
+  OrchestratorAgentIdentifier signal-orchestrate.OrchestratorAgentIdentifier
+  OrchestratorAgentSummary signal-orchestrate.OrchestratorAgentSummary
+  OrchestratorMessage signal-orchestrator-message.OrchestratorMessage
+  OrchestratorMessageKind signal-orchestrator-message.OrchestratorMessageKind
+}
